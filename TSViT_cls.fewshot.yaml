@@ -1,0 +1,59 @@
+# TSViT_cls.fewshot.yaml — 16样本小数据集，稳妥提升指标版本（单卡 8GB）
+MODEL:
+  name: TSViTcls
+  img_res: 24
+  max_seq_len: 4
+  num_channels: 7         # 6光谱 + 1个DOY通道
+  num_features: 16
+  num_classes: 16
+  ignore_background: True
+  dropout: 0.2
+  patch_size: 3
+  dim: 128
+  temporal_depth: 2       # 降低容量，防止过拟合
+  spatial_depth: 1
+  heads: 4
+  pool: 'cls'
+  dim_head: 32
+  emb_dropout: 0.2
+  scale_dim: 4
+
+DATASETS:
+  train:
+    dataset: 'SIMPLE_TIF'
+    label_map:
+    max_seq_len: 4
+    batch_size: 4         # 16样本 -> 每轮4步；更稳定的梯度
+    extra_data:
+    num_workers: 2
+  eval:
+    dataset: 'SIMPLE_TIF'
+    label_map:
+    max_seq_len: 4
+    batch_size: 16
+    extra_data:
+    num_workers: 2
+
+SOLVER:
+  num_epochs: 120         # 小数据集可适当多轮，但仍很快
+  num_warmup_epochs: 5
+  steps: (0, 80000)
+  loss_function: focal_loss  # 保留接口，但通过 gamma=0 等价于CE
+  class_weights:
+  lr_scheduler:
+  lr_base: 3e-4           # 小数据集更稳的学习率
+  lr_min: 5e-6
+  lr_start: 1e-8
+  num_cycles: 1
+  reset_lr: True
+  weight_decay: 0.001     # 适度正则，抑制过拟合
+  gamma: 0.0              # focal gamma=0 -> 退化为CE
+  alpha:
+
+CHECKPOINT:
+  load_from_checkpoint:
+  partial_restore: False
+  save_path: 'saved_models/tsvit_fewshot_16samples'
+  train_metrics_steps: 1
+  eval_steps: 2           # 每两步评估一次（每轮评估2次）
+  save_steps: 4
